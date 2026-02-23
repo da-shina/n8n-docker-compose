@@ -1,0 +1,8 @@
+.env
+playwright_profile/
+n8n-data/
+.DS_Store
+temp/
+ssl/
+node_modules/
+secrets/
