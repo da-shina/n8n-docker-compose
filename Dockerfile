@@ -1,25 +1,51 @@
-# ==================== Single Stage Build ====================
-FROM mcr.microsoft.com/playwright:v1.40.0-jammy
+# ==================== Multi-Stage Build ====================
 
-# Upgrade Node.js to a supported version and install n8n
+# Stage 1: Build - Node.js, n8n, and system dependencies
+FROM mcr.microsoft.com/playwright:v1.40.0-jammy AS build
+
+# Install Node.js and n8n in a single layer
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
     npm install -g npm@latest n8n@latest && \
     node --version
 
-# Install additional system dependencies for GUI and VNC
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+# Install additional system dependencies for GUI, VNC, and Python task runner (single layer)
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN apt-get update && apt-get install -y \
     dumb-init \
     x11vnc \
     xvfb \
     fluxbox \
     fonts-noto-cjk \
+    python3 \
+    python3-pip \
+    python3-venv \
+    tzdata \
+    && python3 -m pip install --upgrade pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Set timezone to avoid interactive tzdata configuration, using value from .env
+# Stage 2: Runtime - Minimal image with only necessary artifacts
+FROM build AS runtime
+
+# Environment variables and runtime-specific configurations
 ARG TZ=UTC
+ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=$TZ
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Copy installed Node.js and n8n from build stage
+COPY --from=build /usr/bin/node /usr/bin/node
+COPY --from=build /usr/bin/npm /usr/bin/npm
+COPY --from=build /usr/lib/node_modules /usr/lib/node_modules
+COPY --from=build /usr/bin/npx /usr/bin/npx
+COPY --from=build /usr/bin/n8n /usr/bin/n8n
+
+# Copy system dependencies
+COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
+COPY --from=build /usr/bin/x11vnc /usr/bin/x11vnc
+COPY --from=build /usr/bin/xvfb /usr/bin/xvfb
+COPY --from=build /usr/bin/fluxbox /usr/bin/fluxbox
 
 # Set n8n environment variables for proper task runner operation
 ENV N8N_USER_FOLDER=/home/pwuser/.n8n

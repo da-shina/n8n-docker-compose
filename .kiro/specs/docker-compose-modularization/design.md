@@ -25,10 +25,10 @@ graph TD
         Runner -->|API / Webhook| Playwright
     end
 
-    subgraph "Local Filesystem Volumes"
-        n8nData[(./n8n_data)]
-        pwData[(./playwright_data)]
-        redisData[(./redis_data)]
+    subgraph "Docker Volumes"
+        n8nData[(n8n_data)]
+        pwData[(playwright_data)]
+        redisData[(redis_data)]
     end
 
     n8n === n8nData
@@ -54,19 +54,19 @@ graph TD
 
 ### 3.2 現行システムとの整合性
 *   `.env` ファイルによる既存の環境変数管理は継続。
-*   ローカルフォルダ (`./n8n_data`, `./playwright_data`) をボリュームとしてマウントし、現在保存されているワークフローや認証情報をそのまま引き継ぐ。
+*   Docker Volume (`n8n_data`, `playwright_data`) を使用し、現在保存されているワークフローや認証情報をそのまま引き継ぐ。
 *   PlaywrightのVNC可視化については、Playwright公式コンテナのビルトインVNC機能を活用することでサービス集約と簡素化を図る。
 
 ## 4. 要件トレーサビリティ
 
-*   **1.1 n8nサービス**: n8nコンテナとして定義。ポート`5678`を公開し、`./n8n_data`をマウント。
+*   **1.1 n8nサービス**: n8nコンテナとして定義。ポート`5678`を公開し、`n8n_data`ボリュームをマウント。
 *   **1.2 n8n Task RunnerサービスとRedis**: Task RunnerコンテナとRedisコンテナを定義。Redisを介して実行をルーティング。
-*   **1.3 Playwright MCP と VNC サービス**: Playwrightコンテナとして定義。ポート`3000`（または設定済の`8931`等）を内部向けとし、デバッグ用VNC（例: `5900`等）を公開、`./playwright_data`をマウント。
+*   **1.3 Playwright MCP と VNC サービス**: Playwrightコンテナとして定義。ポート`3000`（または設定済の`8931`等）を内部向けとし、デバッグ用VNC（例: `5900`等）を公開、`playwright_data`ボリュームをマウント。
 *   **2.1 イメージソース**: `docker.n8n.io/n8nio/n8n`, `redis:7-alpine`, `mcr.microsoft.com/playwright:v1.40.0-jammy`を使用。（Task Runnerもn8n公式イメージを使用）
 *   **2.2 コミュニティノード対応**: 必要に応じ起動スクリプトやカスタムビルドで対応可能にする。
 *   **3.1 メンテナンス性**: 各サービスのイメージタグを`docker-compose.yml`で独立管理。環境変数もサービスごとに分離。
 *   **3.2 セキュリティ**: `n8n`(`5678`)と`VNC`(`5900`)のみ公開。内部通信用ネットワークを構築。
-*   **3.3 互換性**: 既存の`n8n_data`を使用、`.env`をサポート、`podman compose`互換を維持。
+*   **3.3 互換性**: Docker Volume `n8n_data` を使用、`.env`をサポート、`podman compose`互換を維持。
 
 ## 5. コンポーネントとインターフェース契約
 
@@ -78,7 +78,7 @@ graph TD
     *   `QUEUE_BULL_REDIS_HOST=redis`
     *   `QUEUE_BULL_REDIS_PORT=6379`
     *   `QUEUE_BULL_REDIS_PASSWORD` (必要に応じて)
-*   **マウント**: `./n8n_data:/home/node/.n8n`
+*   **マウント**: `n8n_data:/home/node/.n8n`
 
 ### 5.2 n8n Task Runner (ワーカー)
 *   **イメージ**: `docker.n8n.io/n8nio/n8n`
@@ -89,20 +89,20 @@ graph TD
     *   `QUEUE_BULL_REDIS_HOST=redis`
     *   `QUEUE_BULL_REDIS_PORT=6379`
     *   `QUEUE_BULL_REDIS_PASSWORD`
-*   **マウント**: `./n8n_data:/home/node/.n8n` (サーバーと共有、または同期機構を利用)
+*   **マウント**: `n8n_data:/home/node/.n8n` (サーバーと共有、または同期機構を利用)
 
 ### 5.3 Redis Queue
 *   **イメージ**: `redis:7-alpine`
 *   **インターフェース**: 内部ネットワーク内でポート `6379`。外部へは公開しない。
 *   **設定**: AOF (Append Only File) などの永続化オプションの有効化が推奨される。
-*   **マウント**: `./redis_data:/data`
+*   **マウント**: `redis_data:/data`
 
 ### 5.4 Playwright MCP & VNC Service
 *   **イメージ**: `mcr.microsoft.com/playwright:v1.40.0-jammy`
 *   **インターフェース**:
     *   MCP用ポート（例:`8931`や`3000`）を内部ネットワークで公開。
     *   VNC/noVNC用ポート（例:`5900` または `8080`）をホストマシンへ公開（デバッグ目的）。
-*   **マウント**: `./playwright_data:/home/pwuser/user-data` (またはアプリケーションに応じたパス)
+*   **マウント**: `playwright_data:/home/pwuser/user-data` (またはアプリケーションに応じたパス)
 
 ## 6. セキュリティとネットワーク設計
 *   すべてのコンテナは共通の内部ブリッジネットワーク（例:`n8n-net`）に接続する。

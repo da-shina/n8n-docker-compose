@@ -1,44 +1,42 @@
 services:
   n8n:
-    build:
-      context: .
+    image: docker.n8n.io/n8nio/n8n:stable
     restart: unless-stopped
     ports:
       - "5678:5678"
     env_file:
       - .env
+    environment:
+      - N8N_USER_FOLDER=/home/node/.n8n
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - N8N_RUNNERS_MODE=external
+      - N8N_RUNNERS_AUTH_TOKEN=shared-secret-token
+      # Redis TLS 設定 - 無効化 (Redisサーバーが非TLSモードで実行されているため)
+      - N8N_REDIS_TLS_ENABLED=false
+      - N8N_REDIS_TLS_REJECT_UNAUTHORIZED=false
+      # Redis 接続安定性のための追加設定
+      - QUEUE_BULL_REDIS_CONNECT_TIMEOUT=50000
+      - QUEUE_BULL_REDIS_RETRY_DELAY=5000
+      - QUEUE_BULL_REDIS_MAX_ATTEMPTS=10
+      - QUEUE_BULL_REDIS_DB=0
+      # Pythonタスクランナーのエラーを回避するための設定
+      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
     volumes:
-      - ./n8n_data:/home/node/.n8n
-      - ./playwright_data:/home/node/user-data
-      - ./start.sh:/app/start.sh:ro
-      - ./ssl/redis:/etc/ssl/redis:ro
+      - n8n_data:/home/node/.n8n
+      - playwright_data:/home/node/user-data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - default
     depends_on:
-      - redis
-      - n8n-task-runner
-    environment:
-      - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_CONNECT_TO_URL=http://n8n-task-runner:5678
-      - N8N_REDIS_HOST=redis
-      - N8N_REDIS_PORT=6379
-      - N8N_REDIS_TLS_ENABLED=true
-      - N8N_REDIS_PASSWORD_FILE=/run/secrets/redis_password
+      redis:
+        condition: service_started
+    user: "1000:1000"
     secrets:
       - redis_password
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5678/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   n8n-task-runner:
     build:
@@ -46,50 +44,44 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    user: "1000:1000"
     volumes:
-      - ./n8n_data:/home/node/.n8n
-      - ./playwright_data:/home/node/user-data
+      - n8n_data:/home/node/.n8n
+      - playwright_data:/home/node/user-data
       - ./start.sh:/app/start.sh:ro
-      - ./ssl/redis:/etc/ssl/redis:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - default
     environment:
-      - N8N_RUNNERS_MODE=runner
+      - N8N_RUNNERS_MODE=external
       - N8N_INSTANCE_TYPE=runner
-      - N8N_REDIS_HOST=redis
-      - N8N_REDIS_PORT=6379
-      - N8N_REDIS_TLS_ENABLED=true
-      - N8N_REDIS_PASSWORD_FILE=/run/secrets/redis_password
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - N8N_RUNNERS_AUTH_TOKEN=shared-secret-token
+      # Redis TLS 設定 - 無効化 (Redisサーバーが非TLSモードで実行されているため)
+      - N8N_REDIS_TLS_ENABLED=false
+      - N8N_REDIS_TLS_REJECT_UNAUTHORIZED=false
+      # Redis 接続安定性のための追加設定
+      - QUEUE_BULL_REDIS_CONNECT_TIMEOUT=50000
+      - QUEUE_BULL_REDIS_RETRY_DELAY=5000
+      - QUEUE_BULL_REDIS_MAX_ATTEMPTS=10
+      - QUEUE_BULL_REDIS_DB=0
+      # Pythonタスクランナーのエラーを回避するための設定
+      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
     secrets:
       - redis_password
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "n8n"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
-      - "6380:6380"
+    # redis.conf を使用して設定を読み込む (パスワードなし)
+    command: redis-server /usr/local/etc/redis/redis.conf
+    user: "0:0"
     volumes:
-      - ./redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-      - ./redis-cluster.conf:/usr/local/etc/redis/redis-cluster.conf
-      - ./ssl/redis:/etc/ssl/redis
-    command: [
-      "sh", "-c", "redis-server /usr/local/etc/redis/redis.conf --requirepass '$$(cat /run/secrets/redis_password)'"
-    ]
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - default
     environment:
@@ -97,46 +89,21 @@ services:
       - REDIS_MAXMEMORY=256mb
       - REDIS_MAXMEMORY_POLICY=allkeys-lru
       - REDIS_NOTIFY_KEYSPACE_EVENTS=Ex
-      - REDIS_ENABLE_TLS=true
-      - REDIS_TLS_PORT=6380
-      - REDIS_CLUSTER_ENABLED=false
-      - REDIS_CLUSTER_NODES=redis
-    secrets:
-      - redis_password
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "sh", "-c", "redis-cli -h localhost -p 6379 -a '$$(cat /run/secrets/redis_password)' ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   playwright:
     image: mcr.microsoft.com/playwright:v1.40.0-jammy
     restart: unless-stopped
     ports:
       - "8931:8931"
+    user: "1000:1000"
     volumes:
-      - ./playwright_data:/home/pwuser/user-data
+      - playwright_data:/home/pwuser/user-data
+      - ./playwright-mcp-server.js:/app/playwright-mcp-server.js:ro
     environment:
       - PLAYWRIGHT_SERVER_PORT=8931
+    command: node /app/playwright-mcp-server.js
     networks:
       - default
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "bash", "-c", "netstat -tuln | grep 8931"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   vnc:
     build:
@@ -144,24 +111,25 @@ services:
     restart: unless-stopped
     ports:
       - "5900:5900"
+    user: "1000:1000"
     volumes:
-      - ./playwright_data:/home/pwuser/user-data
+      - playwright_data:/home/pwuser/user-data
       - ./start.sh:/app/start.sh:ro
     environment:
       - VNC_PASSWORD=n8npassword
     networks:
       - default
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "bash", "-c", "netstat -tuln | grep 5900"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+
+volumes:
+  n8n_data:
+    name: n8n-docker-compose_n8n_data
+    external: true
+  playwright_data:
+    name: n8n-docker-compose_playwright_data
+    external: true
+  redis_data:
+    name: n8n-docker-compose_redis_data
+    external: true
 
 secrets:
   redis_password:

@@ -1,8 +1,9 @@
-.env
-playwright_profile/
-n8n-data/
 .DS_Store
-temp/
-ssl/
+.env
+n8n_data/
 node_modules/
+playwright_data/
+redis_data/
 secrets/
+ssl/
+temp/
