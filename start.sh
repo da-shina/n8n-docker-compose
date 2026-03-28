@@ -1,34 +1,30 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
-# ロックファイルを削除
+# Remove lock files if they exist
 rm -rf /tmp/.X* /tmp/.xvfb* /home/pwuser/user-data/SingletonLock 2>/dev/null || true
 mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix || true
 
-# Xサーバー、ウィンドウマネージャー、VNCサーバーをバックグラウンドで起動
+# Start Xvfb
 export DISPLAY=:99
-
 echo "Starting Xvfb..."
 Xvfb :99 -screen 0 1280x720x16 -fbdir /tmp -nolisten tcp > /dev/null 2>&1 &
 sleep 2
 
+# Start Fluxbox (Window Manager)
 echo "Starting Fluxbox..."
 fluxbox > /dev/null 2>&1 &
-sleep 2
+sleep 1
 
+# Start x11vnc with password protection
 echo "Starting x11vnc..."
-x11vnc -display :99 -forever -passwd n8npassword -shared > /dev/null 2>&1 &
-sleep 2
+x11vnc -display :99 -forever -passwd "${VNC_PASSWORD:-n8npassword}" -shared > /dev/null 2>&1 &
+sleep 1
 
-echo "Starting n8n..."
-# PlaywrightがGUI環境を正しく認識できるようにDISPLAYを設定
-export DISPLAY=:99
+echo "GUI environment ready for VNC access at :5900"
 
-# n8nが適切なホームディレクトリを使用するように設定（念のため）
-export N8N_USER_FOLDER=/home/pwuser/.n8n
-
-# n8nを起動
-exec n8n
-  
-  
+# Start n8n worker
+echo "Starting n8n worker..."
+# We use exec to make n8n worker the main process (PID 1 via dumb-init)
+exec n8n worker

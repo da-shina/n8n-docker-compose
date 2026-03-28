@@ -23,6 +23,9 @@ services:
       - QUEUE_BULL_REDIS_DB=0
       # Pythonタスクランナーのエラーを回避するための設定
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+      # ユーザー管理設定
+      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_ENCRYPTION_KEY}
+      - N8N_USER_MANAGEMENT_DISABLED=false
     volumes:
       - n8n_data:/home/node/.n8n
       - playwright_data:/home/node/user-data

@@ -1,17 +1,18 @@
-# ==================== Multi-Stage Build ====================
+# ==================== Single-Stage Build ====================
 
-# Stage 1: Build - Node.js, n8n, and system dependencies
-FROM mcr.microsoft.com/playwright:v1.40.0-jammy AS build
+# Use a more recent Playwright base image
+FROM mcr.microsoft.com/playwright:v1.49.0-jammy
 
-# Install Node.js and n8n in a single layer
+# Install Node.js 22.x
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
-    npm install -g npm@latest n8n@latest && \
-    node --version
+    npm install -g npm@latest n8n@latest --no-audit --no-fund && \
+    node --version && \
+    npm cache clean --force
 
-# Install additional system dependencies for GUI, VNC, and Python task runner (single layer)
+# Install additional system dependencies for GUI, VNC, and task runner environment
 ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=UTC
+ENV TZ=Asia/Tokyo
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update && apt-get install -y \
     dumb-init \
@@ -23,34 +24,27 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-venv \
     tzdata \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libnss3 \
+    libgbm1 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libxss1 \
+    libgtk-3-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Stage 2: Runtime - Minimal image with only necessary artifacts
-FROM build AS runtime
-
-# Environment variables and runtime-specific configurations
-ARG TZ=UTC
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=$TZ
-
-# Copy installed Node.js and n8n from build stage
-COPY --from=build /usr/bin/node /usr/bin/node
-COPY --from=build /usr/bin/npm /usr/bin/npm
-COPY --from=build /usr/lib/node_modules /usr/lib/node_modules
-COPY --from=build /usr/bin/npx /usr/bin/npx
-COPY --from=build /usr/bin/n8n /usr/bin/n8n
-
-# Copy system dependencies
-COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
-COPY --from=build /usr/bin/x11vnc /usr/bin/x11vnc
-COPY --from=build /usr/bin/xvfb /usr/bin/xvfb
-COPY --from=build /usr/bin/fluxbox /usr/bin/fluxbox
+# Install common Python packages for n8n Python nodes
+RUN python3 -m pip install --upgrade pip --no-cache-dir && \
+    python3 -m pip install pandas numpy openpyxl requests beautifulsoup4 --no-cache-dir
 
 # Set n8n environment variables for proper task runner operation
 ENV N8N_USER_FOLDER=/home/pwuser/.n8n
-ENV N8N_RUNNERS_MODE=internal
+ENV N8N_RUNNERS_MODE=external
 ENV N8N_RUNNERS_MAX_OLD_SPACE_SIZE=3072
 ENV NODE_OPTIONS="--max-old-space-size=3072"
+ENV DISPLAY=:99
 
 # Create necessary directories
 RUN mkdir -p /home/pwuser/.n8n /home/pwuser/user-data /tmp && \

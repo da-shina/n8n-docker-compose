@@ -1,0 +1,22 @@
+{
+  "feature_name": "n8n-playwright-vnc-docker",
+  "created_at": "2026-03-01T12:00:00Z",
+  "updated_at": "2026-03-01T13:40:00Z",
+  "language": "ja",
+  "phase": "implemented",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true
+}
