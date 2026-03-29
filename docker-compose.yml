@@ -8,11 +8,14 @@ services:
       - .env
     environment:
       - N8N_USER_FOLDER=/home/node/.n8n
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_RUNNERS_MODE=external
+      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
+      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
+      - N8N_RUNNERS_BROKER_PORT=5679
       - EXECUTIONS_MODE=queue
       - QUEUE_BULL_REDIS_HOST=redis
       - QUEUE_BULL_REDIS_PORT=6379
-      - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_AUTH_TOKEN=shared-secret-token
       # Redis TLS 設定 - 無効化 (Redisサーバーが非TLSモードで実行されているため)
       - N8N_REDIS_TLS_ENABLED=false
       - N8N_REDIS_TLS_REJECT_UNAUTHORIZED=false
