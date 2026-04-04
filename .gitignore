@@ -7,3 +7,5 @@ redis_data/
 secrets/
 ssl/
 temp/
+.pytest_cache/
+__pycache__/
