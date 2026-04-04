@@ -6,7 +6,7 @@
 
 ### 目標
 - n8n公式のExternal Task Runner Patternに準拠したアーキテクチャ構築 (1.1)
-- Playwright v1.51.1-jammyをベースにしたTask Runnerイメージの作成 (1.2, 3.1)
+- Playwright v1.49.0-jammyをベースにしたTask Runnerイメージの作成 (1.2, 3.1)
 - Node.js 22.x 環境での実行 (2.3)
 - RedisをQueueストアとして適切に配置 (2.2)
 - VNCによるGUI操作の可視化 (4.1)
@@ -36,11 +36,17 @@ graph TB
             N8N[n8n エンジン / UI]
             Broker[タスクブローカー\nWebSocket ポート 5679]
         end
-        subgraph "n8n-taskrunnerコンテナ"
+        subgraph "n8n-task-runnerコンテナ"
             TR[n8n タスクランナー]
             PW[Playwright / ブラウザ]
             GUI[Xvfb / Fluxbox / x11vnc]
             Init[dumb-init / start.sh]
+        end
+        subgraph "playwrightサービス"
+            PW_SVC[Playwright MCP Server]
+        end
+        subgraph "vncサービス"
+            VNC[Xvfb / Fluxbox / x11vnc]
         end
         subgraph "インフラストラクチャ"
             Redis[Redis キューストア\n（キューモード時のみ）]
@@ -50,11 +56,13 @@ graph TB
 
     ユーザー -- HTTPS:5678 --> N8N
     ユーザー -- VNC:5900 --> GUI
+    ユーザー -- VNC:5900 --> VNC
     N8N -- WebSocket / ブローカー --> TR
     TR -- ローカル操作 --> PW
     PW -- DISPLAY=:99 --> GUI
     N8N -- キューストレージ --> Redis
     TR -- キューストレージ --> Redis
+    N8N -- MCP:8931 --> PW_SVC
 ```
 
 **アーキテクチャ統合方針**：
@@ -62,7 +70,7 @@ graph TB
 - **ドメイン境界**：
   - n8n-main：ユーザーインターフェース、ワークフロー管理、トリガー実行
   - n8n-taskrunner：Codeノード実行、Playwright制御、GUI表示
-- **実装方針**：Playwright v1.51.1-jammy をベースに、公式の `n8nio/runners` 相当の機能を統合
+- **実装方針**：Playwright v1.49.0-jammy をベースに、公式の `n8nio/runners` 相当の機能を統合
 
 ### 技術スタック
 
@@ -72,7 +80,7 @@ graph TB
 | オーケストレーション | Docker Compose | サービス管理 | External Task Runner 対応 |
 | タスクブローカー | n8n Main | WebSocketによるタスク配信 | ポート 5679 |
 | キューストア | Redis 7-alpine | Bullキューの永続化 | Task Requester ↔ Worker |
-| ブラウザ | Playwright 1.51.1 | ブラウザ自動化 | Jammyベースイメージ |
+| ブラウザ | Playwright 1.49.0 | ブラウザ自動化 | Jammyベースイメージ |
 | GUI環境 | Xvfb / Fluxbox | 仮想ディスプレイ | Task Runner 内で動作 |
 | VNCサーバー | x11vnc | リモート可視化 | ポート 5900 |
 
