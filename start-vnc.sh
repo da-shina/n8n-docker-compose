@@ -24,6 +24,6 @@ sleep 1
 
 echo "GUI environment ready for VNC access at :5900"
 
-# Start n8n worker as the main process (managed by dumb-init)
-echo "Starting n8n worker..."
-exec n8n worker
+# Keep container running (for VNC-only service)
+echo "VNC service ready. Keeping container alive..."
+exec sleep infinity
