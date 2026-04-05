@@ -3,11 +3,9 @@
 # Use a more recent Playwright base image
 FROM mcr.microsoft.com/playwright:v1.51.1-jammy
 
-# Install Node.js 22.x
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get update && apt-get install -y nodejs && \
-    npm install -g npm@latest n8n@2.13 --no-audit --no-fund && \
-    node --version && \
+# Install n8n (Playwright v1.51.1-jammy includes Node.js 22.x)
+RUN npm install -g n8n@latest --no-audit --no-fund && \
+    n8n --version && \
     npm cache clean --force
 
 # Install additional system dependencies for GUI, VNC, and task runner environment
