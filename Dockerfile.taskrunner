@@ -1,7 +1,7 @@
 # ==================== Single-Stage Build ====================
 
 # Use a more recent Playwright base image
-FROM mcr.microsoft.com/playwright:v1.49.0-jammy
+FROM mcr.microsoft.com/playwright:v1.51.1-jammy
 
 # Install Node.js 22.x
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \

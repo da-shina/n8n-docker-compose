@@ -67,6 +67,7 @@ services:
       - QUEUE_BULL_REDIS_HOST=redis
       - QUEUE_BULL_REDIS_PORT=6379
       - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
+      - N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679
       # Redis TLS 設定 - 無効化 (Redisサーバーが非TLSモードで実行されているため)
       - N8N_REDIS_TLS_ENABLED=false
       - N8N_REDIS_TLS_REJECT_UNAUTHORIZED=false
@@ -98,7 +99,7 @@ services:
       - REDIS_NOTIFY_KEYSPACE_EVENTS=Ex
 
   playwright:
-    image: mcr.microsoft.com/playwright:v1.49.0-jammy
+    image: mcr.microsoft.com/playwright:v1.51.1-jammy
     restart: unless-stopped
     ports:
       - "8931:8931"
