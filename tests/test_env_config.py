@@ -8,20 +8,20 @@ Task 1.1: .env_sample ファイルの更新と環境変数定義のテスト
 def test_env_sample_has_runner_settings():
     """
     外部タスクランナー向けの環境変数が .env_sample に定義されていることを確認します。
-    
+
     Requirements: 1.3
-    - N8N_RUNNERS_ENABLED
     - N8N_RUNNERS_MODE
     - N8N_RUNNERS_AUTH_TOKEN
     - N8N_RUNNERS_BROKER_LISTEN_ADDRESS
     - N8N_RUNNERS_BROKER_PORT
     - N8N_RUNNERS_TASK_BROKER_URI
+    - N8N_RUNNERS_ENABLED は n8n v2.x で不要（コメントのみ記載可）
     """
     with open(".env_sample", "r") as f:
         content = f.read()
-    
-    # 外部タスクランナー設定
-    assert "N8N_RUNNERS_ENABLED=" in content, "N8N_RUNNERS_ENABLED が定義されていません"
+
+    # N8N_RUNNERS_ENABLED は v2.x で非推奨
+    assert "N8N_RUNNERS_ENABLED=true" not in content, "N8N_RUNNERS_ENABLED は n8n v2.x で不要です"
     assert "N8N_RUNNERS_MODE=" in content, "N8N_RUNNERS_MODE が定義されていません"
     assert "N8N_RUNNERS_AUTH_TOKEN=" in content, "N8N_RUNNERS_AUTH_TOKEN が定義されていません"
     assert "N8N_RUNNERS_BROKER_LISTEN_ADDRESS=" in content, "N8N_RUNNERS_BROKER_LISTEN_ADDRESS が定義されていません"

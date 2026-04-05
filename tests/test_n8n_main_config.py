@@ -10,14 +10,16 @@ Requirements: 2.2
 def test_n8n_main_runner_mode():
     """
     n8n-main サービスが外部タスクランナーモードに設定されていることを確認します。
-    
-    - N8N_RUNNERS_ENABLED=true
+
     - N8N_RUNNERS_MODE=external
+    - N8N_RUNNERS_ENABLED は n8n v2.x で不要（自動検出）
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
-    assert "N8N_RUNNERS_ENABLED=true" in content, "N8N_RUNNERS_ENABLED=true が設定されていません"
+
+    # N8N_RUNNERS_ENABLED は v2.x で非推奨
+    assert "N8N_RUNNERS_ENABLED" not in content or "N8N_RUNNERS_ENABLED=true" not in content, \
+        "N8N_RUNNERS_ENABLED は n8n v2.x で不要です。削除してください"
     assert "N8N_RUNNERS_MODE=external" in content, "N8N_RUNNERS_MODE=external が設定されていません"
 
 

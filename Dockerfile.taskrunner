@@ -6,7 +6,7 @@ FROM mcr.microsoft.com/playwright:v1.51.1-jammy
 # Install Node.js 22.x
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
-    npm install -g npm@latest n8n@latest --no-audit --no-fund && \
+    npm install -g npm@latest n8n@2.13 --no-audit --no-fund && \
     node --version && \
     npm cache clean --force
 
