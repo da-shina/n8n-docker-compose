@@ -25,7 +25,7 @@ sleep 1
 echo "GUI environment ready for VNC access at :5900"
 
 # Start n8n worker as the main process if available (managed by dumb-init)
-if command -v n8n &> /dev/null; then
+if type n8n > /dev/null 2>&1 && n8n --version > /dev/null 2>&1; then
   echo "Starting n8n worker..."
   exec n8n worker
 else
