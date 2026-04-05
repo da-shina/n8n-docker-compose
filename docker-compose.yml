@@ -98,17 +98,12 @@ services:
       - REDIS_NOTIFY_KEYSPACE_EVENTS=Ex
 
   playwright:
-    image: mcr.microsoft.com/playwright:v1.51.1-jammy
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright-mcp
     restart: unless-stopped
     ports:
       - "8931:8931"
-    user: "1000:1000"
-    volumes:
-      - playwright_data:/home/pwuser/user-data
-      - ./playwright-mcp-server.js:/app/playwright-mcp-server.js:ro
-    environment:
-      - PLAYWRIGHT_SERVER_PORT=8931
-    command: node /app/playwright-mcp-server.js
     networks:
       - default
 
