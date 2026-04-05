@@ -24,6 +24,13 @@ sleep 1
 
 echo "GUI environment ready for VNC access at :5900"
 
+# Start Playwright MCP server if available
+if type playwright-mcp > /dev/null 2>&1; then
+  echo "Starting Playwright MCP server on port 8931..."
+  playwright-mcp --port 8931 --host 0.0.0.0 --allowed-hosts '*' --browser chromium > /dev/null 2>&1 &
+  sleep 2
+fi
+
 # Start n8n worker as the main process if available (managed by dumb-init)
 if type n8n > /dev/null 2>&1 && n8n --version > /dev/null 2>&1; then
   echo "Starting n8n worker..."

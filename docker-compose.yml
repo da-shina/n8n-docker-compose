@@ -48,6 +48,8 @@ services:
       context: .
       dockerfile: Dockerfile.taskrunner
     restart: unless-stopped
+    ports:
+      - "8931:8931"
     env_file:
       - .env
     user: "1000:1000"
@@ -96,16 +98,6 @@ services:
       - REDIS_MAXMEMORY=256mb
       - REDIS_MAXMEMORY_POLICY=allkeys-lru
       - REDIS_NOTIFY_KEYSPACE_EVENTS=Ex
-
-  playwright:
-    build:
-      context: .
-      dockerfile: Dockerfile.playwright-mcp
-    restart: unless-stopped
-    ports:
-      - "8931:8931"
-    networks:
-      - default
 
   vnc:
     build:

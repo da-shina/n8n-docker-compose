@@ -8,8 +8,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
     node --version && npm --version
 
-# Install n8n
-RUN npm install -g n8n@latest --no-audit --no-fund && \
+# Install n8n and Playwright MCP
+RUN npm install -g n8n@latest @playwright/mcp --no-audit --no-fund && \
     n8n --version && \
     npm cache clean --force
 
@@ -60,7 +60,7 @@ USER pwuser
 
 WORKDIR /app
 
-EXPOSE 5678 5900
+EXPOSE 5678 5900 8931
 
 # Set the entrypoint to run the startup script
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
