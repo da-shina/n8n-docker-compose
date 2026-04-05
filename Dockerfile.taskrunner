@@ -34,8 +34,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install common Python packages for n8n Python nodes
-RUN python3 -m pip install --upgrade pip --no-cache-dir && \
-    python3 -m pip install pandas numpy openpyxl requests beautifulsoup4 --no-cache-dir
+RUN python3 -m pip install pandas numpy openpyxl requests beautifulsoup4 --no-cache-dir
 
 # Set n8n environment variables for proper task runner operation
 ENV N8N_USER_FOLDER=/home/pwuser/.n8n
