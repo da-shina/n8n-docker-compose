@@ -12,9 +12,6 @@ services:
       - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
       - N8N_RUNNERS_BROKER_PORT=5679
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis
-      - QUEUE_BULL_REDIS_PORT=6379
       # Redis TLS 設定 - 無効化 (Redisサーバーが非TLSモードで実行されているため)
       - N8N_REDIS_TLS_ENABLED=false
       - N8N_REDIS_TLS_REJECT_UNAUTHORIZED=false
@@ -50,6 +47,7 @@ services:
     restart: unless-stopped
     ports:
       - "8931:8931"
+      - "5901:5900"
     env_file:
       - .env
     user: "1000:1000"
@@ -64,21 +62,9 @@ services:
     environment:
       - N8N_RUNNERS_MODE=external
       - N8N_INSTANCE_TYPE=runner
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis
-      - QUEUE_BULL_REDIS_PORT=6379
       - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
       - N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679
-      # Redis TLS 設定 - 無効化 (Redisサーバーが非TLSモードで実行されているため)
-      - N8N_REDIS_TLS_ENABLED=false
-      - N8N_REDIS_TLS_REJECT_UNAUTHORIZED=false
-      # Redis 接続安定性のための追加設定
-      - QUEUE_BULL_REDIS_CONNECT_TIMEOUT=50000
-      - QUEUE_BULL_REDIS_RETRY_DELAY=5000
-      - QUEUE_BULL_REDIS_MAX_ATTEMPTS=10
-      - QUEUE_BULL_REDIS_DB=0
-      # Pythonタスクランナーのエラーを回避するための設定
-      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+      - VNC_PASSWORD=n8npassword
     secrets:
       - redis_password
 

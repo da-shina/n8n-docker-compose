@@ -9,3 +9,4 @@ ssl/
 temp/
 .pytest_cache/
 __pycache__/
+.qwen/
