@@ -1,6 +1,7 @@
-n8n-data/
-playwright_profile/
-node_modules/
-.git/
 .env
+.git/
+n8n_data/
+node_modules/
+playwright_data/
+redis_data/
 temp/
