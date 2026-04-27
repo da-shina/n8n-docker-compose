@@ -1,0 +1,39 @@
+# ==================== VNC Server Dockerfile ====================
+
+# Use the Playwright base image
+FROM mcr.microsoft.com/playwright:v1.51.1-jammy
+
+# Install VNC server dependencies
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+RUN ln -snf /usr/bin/sh /usr/bin/bash && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN apt-get update && apt-get install -y \
+    dumb-init \
+    x11vnc \
+    xvfb \
+    fluxbox \
+    fonts-noto-cjk \
+    python3 \
+    python3-pip \
+    python3-venv \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories
+RUN mkdir -p /home/pwuser/user-data && \
+    chown -R pwuser:pwuser /home/pwuser
+
+# Copy the startup script
+COPY --chmod=755 start.sh /app/start.sh
+
+# Switch to pwuser
+USER pwuser
+
+WORKDIR /app
+
+EXPOSE 5900
+
+# Set the entrypoint to run the startup script
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/app/start.sh"]
