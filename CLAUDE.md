@@ -26,10 +26,10 @@ podman compose down
 cd tests && python -m pytest
 
 # Run specific test file
-cd tests && python -m pytest tests/test_env_config.py
+cd tests && python -m pytest test_env_config.py
 
 # Run a single test
-cd tests && python -m pytest tests/test_env_config.py::test_env_sample_has_runner_settings -v
+cd tests && python -m pytest test_env_config.py::test_env_sample_has_runner_settings -v
 ```
 
 ## Architecture

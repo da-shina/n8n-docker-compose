@@ -173,12 +173,12 @@ N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679  # ✅ 正
 ### 5.3 アーキテクチャ確認
 
 **Task Runner WebSocket接続** ✅ 正しい実装:
-```
+```text
 n8n-task-runner --ws://n8n:5679--> n8n (Broker port 5679)
 ```
 
 **Redis Queue接続** ✅ 正しい実装:
-```
+```text
 n8n --TCP 6379--> Redis (Queueストレージのみ、Task Runnerは直接接続しない)
 ```
 
@@ -196,8 +196,8 @@ n8n --TCP 6379--> Redis (Queueストレージのみ、Task Runnerは直接接続
 
 ## 7. 参照
 
-- 要件: `.kiro/specs/n8n-docker-conpose/requirements.md`
-- 設計: `.kiro/specs/n8n-docker-conpose/design.md`
-- Research: `.kiro/specs/n8n-docker-conpose/research.md`
-- タスク: `.kiro/specs/n8n-docker-conpose/tasks.md`
+- 要件: `.kiro/specs/n8n-docker-compose/requirements.md`
+- 設計: `.kiro/specs/n8n-docker-compose/design.md`
+- Research: `.kiro/specs/n8n-docker-compose/research.md`
+- タスク: `.kiro/specs/n8n-docker-compose/tasks.md`
 - Gap Analysis Framework: `.kiro/settings/rules/gap-analysis.md`
