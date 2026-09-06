@@ -7,17 +7,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Container Management
 ```bash
 # Start all services
-podman compose up -d
+podman-compose up -d
 
 # Rebuild and start (after Dockerfile changes)
-podman compose up -d --build
+podman-compose up -d --build
 
 # View logs (all or specific service)
-podman compose logs -f
-podman compose logs -f n8n-task-runner
+podman-compose logs -f
+podman-compose logs -f n8n-task-runner
 
 # Stop services
-podman compose down
+podman-compose down
 ```
 
 ### Testing
@@ -47,13 +47,12 @@ This project runs n8n (workflow automation platform) with external task runners 
 - `start.sh`: Container entry point - starts Xvfb, Fluxbox, x11vnc, and Playwright MCP (shared by task-runner and vnc services)
 - `Dockerfile.taskrunner`: Builds n8n-task-runner image (n8n + Playwright MCP + GUI stack)
 - `Dockerfile.vnc`: Builds VNC image (lighter, GUI stack only)
-- `redis.conf`: Redis configuration with AOF persistence
+- `redis.conf`: Redis configuration
 - `.env` / `.env_sample`: Environment variables (N8N_ENCRYPTION_KEY required)
 
 ### Networking
 - Services communicate via Docker network (not host networking)
 - `host.docker.internal:host-gateway` maps to host machine
-- Redis requires secret in `secrets/redis_password`
 
 ### Volumes (External Named Volumes)
 All persistent data uses external named volumes:
