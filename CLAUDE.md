@@ -1,81 +1,81 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このファイルは、Claude Code (claude.ai/code) がこのリポジトリのコードを扱う際のガイダンスを提供します。
 
 ## Commands
 
 ### Container Management
 ```bash
-# First run: create .env and fill in the required secrets
+# 初回実行: .env を作成し、必要な秘密情報を入力する
 cp .env_sample .env
 
-# Start all services
+# すべてのサービスを起動する
 podman-compose up -d
 
-# Rebuild and start (after Dockerfile changes)
+# 再ビルドして起動する（Dockerfile 変更後）
 podman-compose up -d --build
 
-# View logs (all or specific service)
+# ログを表示する（すべてまたは特定のサービス）
 podman-compose logs -f
 podman-compose logs -f n8n-runners
 
-# Stop services
+# サービスを停止する
 podman-compose down
 ```
 
 ### Testing
 ```bash
-# Run all tests from the repository root (the tests read files by relative path)
+# リポジトリのルートからすべてのテストを実行する（テストは相対パスでファイルを読み込む）
 python -m pytest tests
 
-# Run specific test file
+# 特定のテストファイルを実行する
 python -m pytest tests/test_env_config.py
 
-# Run a single test
+# 単一のテストを実行する
 python -m pytest tests/test_env_config.py::test_env_sample_has_runner_settings -v
 ```
 
 ## Architecture
 
-This project runs n8n (workflow automation platform) with an external task runner for Code nodes and a separate Playwright browser for automation.
+このプロジェクトは n8n（ワークフロー自動化プラットフォーム）を、Code ノード用の外部タスクランナーと、別々の Playwright ブラウザとともに実行します。
 
 ### Services
-- **n8n**: Main n8n instance on port 5678. Runs the UI and workflow executions.
-- **n8n-runners**: Official external task runner sidecar (`n8nio/runners`). Executes JavaScript and Python Code nodes in an isolated process.
-- **n8n-task-runner**: Playwright browser with a virtual display. Runs Playwright MCP on port 8931 and x11vnc on port 5900.
-- **redis**: Queue store. Not used until queue mode is enabled.
+- **n8n**: ポート 5678 のメイン n8n インスタンス。UI とワークフロー実行を担う。
+- **n8n-runners**: 公式の外部タスクランナーサイドカー（`n8nio/runners`）。JavaScript と Python の Code ノードを隔離プロセスで実行する。
+- **n8n-task-runner**: 仮想ディスプレイを備えた Playwright ブラウザ。ポート 8931 で Playwright MCP を実行し、ポート 5900 で x11vnc を実行する。
+- **redis**: キューストア。キュー モードが有効になるまで使用されない。
 
 ### Key Files
-- `docker-compose.yml`: Service definitions and configuration
-- `start.sh`: Browser entry point: starts Xvfb, Fluxbox, x11vnc and Playwright MCP
-- `Dockerfile.taskrunner`: Builds the Playwright/VNC browser image. It installs `@playwright/mcp` and the matching Chromium into `PLAYWRIGHT_BROWSERS_PATH`.
-- `redis.conf`: Redis configuration (password comes from `REDIS_PASSWORD`)
-- `.env` / `.env_sample`: Environment variables and required secrets
+- `docker-compose.yml`: サービス定義と設定
+- `start.sh`: ブラウザのエントリポイント。Xvfb、Fluxbox、x11vnc、Playwright MCP を起動する
+- `Dockerfile.taskrunner`: Playwright/VNC ブラウザイメージをビルドする。`@playwright/mcp` と一致する Chromium を `PLAYWRIGHT_BROWSERS_PATH` にインストールする
+- `redis.conf`: Redis 設定（パスワードは `REDIS_PASSWORD` から渡される）
+- `.env` / `.env_sample`: 環境変数と必要な秘密情報
 
 ### Networking
-- Services communicate via the Docker network (not host networking)
-- n8n reaches Playwright MCP at `http://n8n-task-runner:8931/mcp` (the `playwright` alias also works)
-- MCP is published only on `127.0.0.1:8931` because it has no authentication
-- VNC is published on port 5900 and always requires `VNC_PASSWORD`
-- The task broker listens on port 5679 inside the Docker network only
-- `host.docker.internal:host-gateway` maps to the host machine
+- サービス間の通信は Docker ネットワーク経由（ホスト ネットワークではない）
+- n8n は `http://n8n-task-runner:8931/mcp` で Playwright MCP に到達する（`playwright` エイリアスも使用可能）
+- MCP は認証がないため `127.0.0.1:8931` にのみ公開する
+- VNC はポート 5900 で公開され、常に `VNC_PASSWORD` を必要とする
+- タスク ブローカーは Docker ネットワーク内でのみポート 5679 をリッスンする
+- `host.docker.internal:host-gateway` はホスト マシンにマップする
 
 ### Volumes (Named Volumes)
-All persistent data uses named volumes. Compose creates them on first start:
-- `n8n-docker-compose_n8n_data`: n8n user data and workflows
-- `n8n-docker-compose_playwright_data`: browser profile (cookies, logins)
-- `n8n-docker-compose_redis_data`: Redis persistence (AOF)
+すべての永続データは名前付きボリュームを使用する。Compose は初回起動時に作成する：
+- `n8n-docker-compose_n8n_data`: n8n のユーザ データとワークフロー
+- `n8n-docker-compose_playwright_data`: ブラウザ プロファイル（クッキー、ログイン）
+- `n8n-docker-compose_redis_data`: Redis の永続データ（AOF）
 
 ## Configuration
 
-Required secrets (the stack refuses to start if they are empty):
-- `N8N_ENCRYPTION_KEY`: encryption key for stored credentials
-- `N8N_RUNNERS_AUTH_TOKEN`: shared secret between n8n and n8n-runners
-- `REDIS_PASSWORD`: Redis authentication password
-- `VNC_PASSWORD`: VNC access password (VNC accepts at most 8 characters)
+Required secrets（スタックはこれらが空の場合に起動を拒否する）:
+- `N8N_ENCRYPTION_KEY`: 保存された認証情報の暗号化キー
+- `N8N_RUNNERS_AUTH_TOKEN`: n8n と n8n-runners 間の共有シークレット
+- `REDIS_PASSWORD`: Redis の認証パスワード
+- `VNC_PASSWORD`: VNC アクセス パスワード（VNC は最大 8 文字を受け付ける）
 
 Versioning:
-- `N8N_VERSION` is used for both the n8n and n8n-runners images. They must match.
+- `N8N_VERSION` は n8n と n8n-runners の両方のイメージで使用される。一致していなければならない。
 
 Queue mode:
-- Queue mode is not enabled. The Redis settings are kept for a future setup, which also requires PostgreSQL (n8n does not support queue mode with SQLite).
+- キュー モードは有効になっていない。Redis 設定は将来のセットアップのために保持されているが、それには PostgreSQL も必要となる（n8n は SQLite でキュー モードをサポートしていない）。

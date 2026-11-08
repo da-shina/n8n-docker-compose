@@ -2,7 +2,7 @@ import os
 
 
 def test_docker_compose_structure():
-    """Check if docker-compose.yml has the strictly required services."""
+    """docker-compose.yml に必須のサービスが定義されているかを確認する。"""
     with open("docker-compose.yml", "r") as f:
         content = f.read()
 
@@ -13,11 +13,11 @@ def test_docker_compose_structure():
     assert "redis:" in content, "redis サービスが定義されていません"
 
 def test_env_file_exists():
-    """Check if .env file exists (created from .env_sample)."""
+    """.env ファイルが存在するか (.env_sample から作成) を確認する。"""
     assert os.path.exists(".env")
 
 def test_env_variables():
-    """Check if required env variables are in .env."""
+    """.env に必須の環境変数が含まれているかを確認する。"""
     with open(".env", "r") as f:
         content = f.read()
 

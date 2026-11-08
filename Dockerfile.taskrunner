@@ -1,9 +1,9 @@
-# ==================== Single-Stage Build ====================
+# ==================== シングルステージビルド ====================
 
-# Playwright base image: includes Chromium and the browser system libraries.
+# Playwright ベースイメージ: Chromium とブラウザ用システムライブラリを含む。
 FROM mcr.microsoft.com/playwright:v1.51.1-jammy
 
-# Install the GUI, VNC and process-management dependencies.
+# GUI、VNC、プロセス管理の依存関係をインストールする。
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Tokyo
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
@@ -25,9 +25,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &
     libgtk-3-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Keep every browser under one path so the MCP server finds the build that
-# matches its own Playwright version. @playwright/mcp ships alpha Playwright
-# releases, so the browser bundled in the base image cannot be reused.
+# MCP サーバーが自分の Playwright バージョンに合うビルドを見つけられるよう、
+# ブラウザを 1 つのパスにまとめる。@playwright/mcp はアルファ版の Playwright
+# をリリースするため、ベースイメージにバンドルされたブラウザは再利用できない。
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN npm install -g @playwright/mcp --no-audit --no-fund && \
     node "$(npm root -g)/@playwright/mcp/node_modules/playwright/cli.js" install chromium && \
@@ -35,20 +35,20 @@ RUN npm install -g @playwright/mcp --no-audit --no-fund && \
 
 ENV DISPLAY=:99
 
-# Create the persistent browser profile directory.
+# ブラウザプロファイル用の永続ディレクトリを作成する。
 RUN mkdir -p /home/pwuser/user-data && \
     chown -R pwuser:pwuser /home/pwuser
 
-# Copy the startup script (also bind-mounted so edits apply without a rebuild).
+# 起動スクリプトをコピーする (バインドマウントもあるため、再ビルドなしで編集が反映される)。
 COPY --chmod=755 start.sh /app/start.sh
 
-# Switch to pwuser
+# pwuser に切り替える
 USER pwuser
 
 WORKDIR /app
 
 EXPOSE 5900 8931
 
-# Set the entrypoint to run the startup script
+# エントリポイントとして起動スクリプトを設定する
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/app/start.sh"]

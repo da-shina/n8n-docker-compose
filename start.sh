@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Keep the container alive even if one helper process fails.
-# Do not add `set -e`: a dead window manager must not stop VNC or Playwright MCP.
+# ヘルパープロセスの1つが失敗してもコンテナを生かし続ける。
+# `set -e` は追加しない: ウィンドウマネージャが停止しても VNC や Playwright MCP を止めないため。
 
 export DISPLAY=:99
 USER_DATA_DIR="${HOME}/user-data"
 
-# Remove stale X and browser lock files from a previous run.
+# 前回の実行から残った X やブラウザのロックファイルを削除する。
 rm -rf /tmp/.X* /tmp/.xvfb* \
   "$USER_DATA_DIR/SingletonLock" \
   "$USER_DATA_DIR/SingletonCookie" \
@@ -39,8 +39,7 @@ echo "GUI environment ready for VNC access at :5900"
 echo "Starting Playwright MCP server on port 8931..."
 cd "$USER_DATA_DIR" 2>/dev/null || cd /tmp || true
 
-# The image installs the Chromium build that matches @playwright/mcp's own
-# Playwright version into PLAYWRIGHT_BROWSERS_PATH, so no path detection is needed.
+# イメージは @playwright/mcp のバージョンに合う Chromium ビルドを PLAYWRIGHT_BROWSERS_PATH にインストールするため、パス検出は不要。
 if pgrep -f "playwright-mcp.*--port 8931" > /dev/null; then
   echo "Playwright MCP is already running on port 8931"
 else
@@ -54,7 +53,7 @@ else
     > /tmp/playwright-mcp.log 2>&1 &
 fi
 
-# Wait for the MCP process instead of using a fixed sleep.
+# 固定のスリープを使わず MCP プロセスの起動を待つ。
 for _ in $(seq 1 50); do
   pgrep -f "playwright-mcp.*--port 8931" > /dev/null && break
   sleep 0.2
