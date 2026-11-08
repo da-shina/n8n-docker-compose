@@ -1,7 +1,7 @@
 # ==================== シングルステージビルド ====================
 
 # Playwright ベースイメージ: Chromium とブラウザ用システムライブラリを含む。
-FROM mcr.microsoft.com/playwright:v1.51.1-jammy
+FROM mcr.microsoft.com/playwright:v1.65.0-jammy
 
 # GUI、VNC、プロセス管理の依存関係をインストールする。
 ENV DEBIAN_FRONTEND=noninteractive
