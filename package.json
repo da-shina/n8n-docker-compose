@@ -1,0 +1,9 @@
+{
+  "name": "n8n-task-runner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "n8n Playwright task runner browser container",
+  "dependencies": {
+    "@playwright/mcp": "0.0.84"
+  }
+}

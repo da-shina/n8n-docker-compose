@@ -29,7 +29,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &
 # ブラウザを 1 つのパスにまとめる。@playwright/mcp はアルファ版の Playwright
 # をリリースするため、ベースイメージにバンドルされたブラウザは再利用できない。
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN npm install -g @playwright/mcp --no-audit --no-fund && \
+COPY package.json /app/package.json
+RUN npm install -g @playwright/mcp@0.0.84 --no-fund && \
     node "$(npm root -g)/@playwright/mcp/node_modules/playwright/cli.js" install chromium && \
     npm cache clean --force
 
