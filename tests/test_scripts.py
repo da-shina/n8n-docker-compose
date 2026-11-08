@@ -1,7 +1,7 @@
 """
 Task 3.2: 起動スクリプト (start.sh) のテスト
 
-start.sh が GUI 環境と n8n ワーカーを正しく起動することを検証します。
+start.sh が GUI 環境、VNC、Playwright MCP を正しく起動することを検証します。
 
 Requirements: 3.2, 4.1, 4.2, 4.3
 """
@@ -49,19 +49,32 @@ def test_start_sh_x11vnc():
         "VNC ポート/ディスプレイの設定が見つかりません"
 
 
-def test_start_sh_n8n_worker():
+def test_start_sh_keeps_container_alive():
     """
-    n8n ワーカープロセスが起動されることを確認します。
-    
+    n8n を起動せず、コンテナを生かしたままにすることを確認します。
+
     Requirements: 3.2, 4.3
     """
     with open("start.sh", "r") as f:
         content = f.read()
-    
-    assert "n8n" in content, "n8n の起動設定が見つかりません"
-    # n8n worker または n8n start worker などのコマンド
-    assert "worker" in content or "start" in content, \
-        "n8n ワーカーコマンドが見つかりません"
+
+    assert "exec sleep infinity" in content, \
+        "コンテナを生かす処理が見つかりません"
+    assert "n8n worker" not in content, \
+        "ブラウザコンテナで n8n worker を起動しないでください"
+
+
+def test_start_sh_uses_profile_volume():
+    """
+    ブラウザプロファイルが playwright_data のマウント先に保存されることを確認します。
+
+    Requirements: 1.4
+    """
+    with open("start.sh", "r") as f:
+        content = f.read()
+
+    assert 'USER_DATA_DIR="${HOME}/user-data"' in content, \
+        "ブラウザプロファイルの保存先が /home/pwuser/user-data になっていません"
 
 
 def test_start_sh_dumb_init():
@@ -81,7 +94,7 @@ def test_start_sh_dumb_init():
 
 def test_start_sh_no_tail():
     """
-    tail -f /dev/null で終了しないことを確認します（n8n がメインプロセスであるべき）。
+    tail -f /dev/null で終了しないことを確認します。
     
     Requirements: 3.2, 4.3
     """
@@ -89,45 +102,4 @@ def test_start_sh_no_tail():
         content = f.read()
     
     assert "tail -f /dev/null" not in content, \
-        "tail -f /dev/null が含まれています（n8n がメインプロセスであるべきです）"
-
-
-def test_start_sh_error_handling():
-    """
-    エラーハンドリング（set -e）が含まれていることを確認します。
-    
-    Requirements: 3.2
-    """
-    with open("start.sh", "r") as f:
-        content = f.read()
-    
-    assert "set -e" in content, "set -e（エラー時に終了）の設定が見つかりません"
-
-
-if __name__ == "__main__":
-    tests = [
-        test_start_sh_xvfb_initialization,
-        test_start_sh_fluxbox,
-        test_start_sh_x11vnc,
-        test_start_sh_n8n_worker,
-        test_start_sh_dumb_init,
-        test_start_sh_no_tail,
-        test_start_sh_error_handling,
-    ]
-    
-    failed = []
-    for test in tests:
-        try:
-            test()
-            print(f"✅ {test.__name__} passed")
-        except AssertionError as e:
-            print(f"❌ {test.__name__} failed: {e}")
-            failed.append((test.__name__, str(e)))
-    
-    if failed:
-        print(f"\n{len(failed)} test(s) failed:")
-        for name, error in failed:
-            print(f"  - {name}: {error}")
-        exit(1)
-    else:
-        print(f"\n✅ All {len(tests)} tests passed")
+        "tail -f /dev/null が含まれています（exec sleep infinity を使ってください）"

@@ -1,9 +1,8 @@
 import os
-import subprocess
-import time
+
 
 def test_docker_compose_structure():
-    """Check if docker-compose.yml has the strictly required services."""
+    """docker-compose.yml に必須のサービスが定義されているかを確認する。"""
     with open("docker-compose.yml", "r") as f:
         content = f.read()
 
@@ -14,11 +13,11 @@ def test_docker_compose_structure():
     assert "redis:" in content, "redis サービスが定義されていません"
 
 def test_env_file_exists():
-    """Check if .env file exists (created from .env_sample)."""
+    """.env ファイルが存在するか (.env_sample から作成) を確認する。"""
     assert os.path.exists(".env")
 
 def test_env_variables():
-    """Check if required env variables are in .env."""
+    """.env に必須の環境変数が含まれているかを確認する。"""
     with open(".env", "r") as f:
         content = f.read()
 
@@ -73,29 +72,3 @@ def test_volume_mounts():
     
     # playwright_data のマウント
     assert "playwright_data:" in content, "playwright_data ボリュームのマウント設定が見つかりません"
-
-
-if __name__ == "__main__":
-    try:
-        test_docker_compose_structure()
-        print("✅ Docker Compose structure test passed")
-
-        # This will fail initially because I haven't created .env or updated it
-        test_env_file_exists()
-        print("✅ .env file exists")
-
-        test_env_variables()
-        print("✅ Environment variables test passed")
-        
-        test_persistent_volumes_defined()
-        print("✅ Persistent volumes test passed")
-        
-        test_volume_user_permissions()
-        print("✅ Volume user permissions test passed")
-        
-        test_volume_mounts()
-        print("✅ Volume mounts test passed")
-
-    except AssertionError as e:
-        print(f"❌ Test failed: {e}")
-        exit(1)

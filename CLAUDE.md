@@ -1,71 +1,57 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このファイルは、Claude Code (claude.ai/code) がこのリポジトリのコードを扱う際のガイダンスを提供します。
 
-## Commands
+## リポジトリ概要
 
-### Container Management
+n8n（ワークフロー自動化プラットフォーム）を、Code ノード用の外部タスクランナー (`n8nio/runners`) と、別々の Playwright ブラウザコンテナ (`n8n-task-runner`) とともに構成する Docker/Podman Compose プロジェクト。キュー用の Redis も含む。
+
+## コマンド
+
+### コンテナ管理
+
 ```bash
-# Start all services
+# 初回実行: .env を作成し、必要な秘密情報を入力する
+cp .env_sample .env
+
+# すべてのサービスを起動
 podman-compose up -d
 
-# Rebuild and start (after Dockerfile changes)
+# Dockerfile 変更後に再ビルドして起動
 podman-compose up -d --build
 
-# View logs (all or specific service)
+# ログを表示（すべてまたは特定サービス）
 podman-compose logs -f
+podman-compose logs -f n8n-runners
 podman-compose logs -f n8n-task-runner
 
-# Stop services
+# サービスを停止
 podman-compose down
 ```
 
-### Testing
+### テスト
+
+テストはリポジトリのルートから実行する（テストは相対パスでファイルを読み込む）。
+
 ```bash
-# Run all tests
-cd tests && python -m pytest
+# すべてのテストを実行
+python -m pytest tests
 
-# Run specific test file
-cd tests && python -m pytest test_env_config.py
+# 特定のテストファイルを実行
+python -m pytest tests/test_env_config.py
 
-# Run a single test
-cd tests && python -m pytest test_env_config.py::test_env_sample_has_runner_settings -v
+# 単一のテストを実行
+python -m pytest tests/test_env_config.py::test_env_sample_has_runner_settings -v
 ```
 
-## Architecture
+`tests/check_python.py` は参考情報（Python 環境の確認）であり、テスト対象ではない。
 
-This project runs n8n (workflow automation platform) with external task runners and Playwright browser automation.
+## テストに関する注意
 
-### Services
-- **n8n**: Main n8n instance on port 5678
-- **n8n-task-runner**: External task runner with Playwright MCP server on port 8931
-- **redis**: Message queue on port 6379 (AOF persistence enabled)
-- **vnc**: VNC server on port 5900 (for Playwright browser GUI)
+- すべてのテストは相対パスでファイルを読み込むため、**リポジトリのルートから** `python -m pytest tests` を実行すること。
+- `test_infra.py::test_env_file_exists` は `.env` の存在を前提とするため、事前に `cp .env_sample .env` が必要。
+- 統合テスト（`test_integration.py`）は compose スタックが起動している必要があり、起動していない場合はスキップされる。
 
-### Key Files
-- `docker-compose.yml`: Service definitions and configuration
-- `start.sh`: Container entry point - starts Xvfb, Fluxbox, x11vnc, and Playwright MCP (shared by task-runner and vnc services)
-- `Dockerfile.taskrunner`: Builds n8n-task-runner image (n8n + Playwright MCP + GUI stack)
-- `Dockerfile.vnc`: Builds VNC image (lighter, GUI stack only)
-- `redis.conf`: Redis configuration
-- `.env` / `.env_sample`: Environment variables (N8N_ENCRYPTION_KEY required)
+## .claude/settings.local.json
 
-### Networking
-- Services communicate via Docker network (not host networking)
-- `host.docker.internal:host-gateway` maps to host machine
-
-### Volumes (External Named Volumes)
-All persistent data uses external named volumes:
-- `n8n-docker-compose_n8n_data`: n8n user data and workflows
-- `n8n-docker-compose_playwright_data`: Playwright browser data
-- `n8n-docker-compose_redis_data`: Redis persistence (AOF)
-
-## Configuration
-
-Critical environment variables:
-- `N8N_ENCRYPTION_KEY`: JWT secret for authentication (required)
-- `N8N_RUNNERS_AUTH_TOKEN`: Shared secret for runner authentication
-- `VNC_PASSWORD`: VNC access password (default: n8npassword)
-
-Required secrets:
-- `secrets/redis_password`: Redis authentication password
+フック・権限の許可リストが定義済み。`docker-compose.yml` / `Dockerfile` を Edit するとテストが自動実行され、`.env` の直接編集は促すプロンプトが表示される。

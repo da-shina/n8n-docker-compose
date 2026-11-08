@@ -1,31 +1,18 @@
-# ==================== Single-Stage Build ====================
+# ==================== シングルステージビルド ====================
 
-# Use a more recent Playwright base image
-FROM mcr.microsoft.com/playwright:v1.51.1-jammy
+# Playwright ベースイメージ: Chromium とブラウザ用システムライブラリを含む。
+FROM mcr.microsoft.com/playwright:v1.65.0-jammy
 
-# Upgrade Node.js to >=22.16 (required by n8n latest)
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get update && apt-get install -y nodejs && \
-    node --version && npm --version
-
-# Install n8n and Playwright MCP
-RUN npm install -g n8n@latest @playwright/mcp --no-audit --no-fund && \
-    n8n --version && \
-    npm cache clean --force
-
-# Install additional system dependencies for GUI, VNC, and task runner environment
+# GUI、VNC、プロセス管理の依存関係をインストールする。
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Tokyo
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-RUN apt-get update && apt-get install -y \
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    apt-get update && apt-get install -y \
     dumb-init \
     x11vnc \
     xvfb \
     fluxbox \
     fonts-noto-cjk \
-    python3 \
-    python3-pip \
-    python3-venv \
     tzdata \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
@@ -38,30 +25,31 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install common Python packages for n8n Python nodes
-RUN python3 -m pip install pandas numpy openpyxl requests beautifulsoup4 --no-cache-dir
+# MCP サーバーが自分の Playwright バージョンに合うビルドを見つけられるよう、
+# ブラウザを 1 つのパスにまとめる。@playwright/mcp はアルファ版の Playwright
+# をリリースするため、ベースイメージにバンドルされたブラウザは再利用できない。
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY package.json /app/package.json
+RUN npm install -g @playwright/mcp@0.0.84 --no-fund && \
+    node "$(npm root -g)/@playwright/mcp/node_modules/playwright/cli.js" install chromium && \
+    npm cache clean --force
 
-# Set n8n environment variables for proper task runner operation
-ENV N8N_USER_FOLDER=/home/pwuser/.n8n
-ENV N8N_RUNNERS_MODE=external
-ENV N8N_RUNNERS_MAX_OLD_SPACE_SIZE=3072
-ENV NODE_OPTIONS="--max-old-space-size=3072"
 ENV DISPLAY=:99
 
-# Create necessary directories
-RUN mkdir -p /home/pwuser/.n8n /home/pwuser/user-data /tmp && \
+# ブラウザプロファイル用の永続ディレクトリを作成する。
+RUN mkdir -p /home/pwuser/user-data && \
     chown -R pwuser:pwuser /home/pwuser
 
-# Copy the startup script
+# 起動スクリプトをコピーする (バインドマウントもあるため、再ビルドなしで編集が反映される)。
 COPY --chmod=755 start.sh /app/start.sh
 
-# Switch to pwuser
+# pwuser に切り替える
 USER pwuser
 
 WORKDIR /app
 
-EXPOSE 5678 5900 8931
+EXPOSE 5900 8931
 
-# Set the entrypoint to run the startup script
+# エントリポイントとして起動スクリプトを設定する
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/app/start.sh"]

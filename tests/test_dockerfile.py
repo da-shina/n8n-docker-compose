@@ -20,17 +20,17 @@ def test_dockerfile_taskrunner_base_image():
         "Playwright ベースイメージが使用されていません"
 
 
-def test_dockerfile_taskrunner_nodejs_installation():
+def test_dockerfile_taskrunner_playwright_mcp():
     """
-    Node.js 22.x がインストールされていることを確認します。
-    
+    Playwright MCP がインストールされ、n8n 本体は含まれないことを確認します。
+
     Requirements: 1.2, 3.1
     """
     with open("Dockerfile.taskrunner", "r") as f:
         content = f.read()
-    
-    assert "setup_22.x" in content, "Node.js 22.x のインストール設定が見つかりません"
-    assert "n8n" in content, "n8n パッケージのインストール設定が見つかりません"
+
+    assert "@playwright/mcp" in content, "Playwright MCP のインストール設定が見つかりません"
+    assert "n8n worker" not in content, "ブラウザイメージに n8n を含めないでください"
 
 
 def test_dockerfile_taskrunner_gui_dependencies():
@@ -69,44 +69,3 @@ def test_dockerfile_taskrunner_dumb_init():
         content = f.read()
     
     assert "dumb-init" in content, "dumb-init がインストールされていません"
-
-
-def test_dockerfile_taskrunner_python_support():
-    """
-    Python サポートがインストールされていることを確認します。
-    
-    Requirements: 1.2, 3.1
-    """
-    with open("Dockerfile.taskrunner", "r") as f:
-        content = f.read()
-    
-    assert "python3" in content, "python3 がインストールされていません"
-    assert "pip" in content, "pip がインストールされていません"
-
-
-if __name__ == "__main__":
-    tests = [
-        test_dockerfile_taskrunner_base_image,
-        test_dockerfile_taskrunner_nodejs_installation,
-        test_dockerfile_taskrunner_gui_dependencies,
-        test_dockerfile_taskrunner_display_env,
-        test_dockerfile_taskrunner_dumb_init,
-        test_dockerfile_taskrunner_python_support,
-    ]
-    
-    failed = []
-    for test in tests:
-        try:
-            test()
-            print(f"✅ {test.__name__} passed")
-        except AssertionError as e:
-            print(f"❌ {test.__name__} failed: {e}")
-            failed.append((test.__name__, str(e)))
-    
-    if failed:
-        print(f"\n{len(failed)} test(s) failed:")
-        for name, error in failed:
-            print(f"  - {name}: {error}")
-        exit(1)
-    else:
-        print(f"\n✅ All {len(tests)} tests passed")

@@ -1,7 +1,14 @@
 .env
 .git/
+.claude/
+.kiro/
+.vscode/
 n8n_data/
 node_modules/
 playwright_data/
 redis_data/
+secrets/
+ssl/
 temp/
+tests/
+.DS_Store
