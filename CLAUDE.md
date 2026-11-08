@@ -53,7 +53,7 @@ python -m pytest tests/test_env_config.py::test_env_sample_has_runner_settings -
 - **n8n** (`docker.io/n8nio/n8n:${N8N_VERSION}`): ポート 5678 で UI とワークフロー実行。Code ノードは外部タスクランナーに委譲 (`N8N_RUNNERS_MODE=external`)。
 - **n8n-runners** (`docker.io/n8nio/runners:${N8N_VERSION}`): 公式外部タスクランナーサイドカー。JavaScript / Python の Code ノードを隔離プロセスで実行。タスクブローカーは n8n のポート 5679 (`ws://n8n:5679`)。
 - **n8n-task-runner** (`Dockerfile.taskrunner` ビルド): Playwright ブラウザ + VNC。`http://n8n-task-runner:8931/mcp` で Playwright MCP を提供（エイリアス `playwright` も可）。VNC はポート 5900。
-- **redis** (`docker.io/library/redis:7-alpine`): キューストア。キューモード未有効のため現在未使用。将来のキュー モードには PostgreSQL も必要（n8n は SQLite でキュー モード未サポート）。
+- **redis** (`docker.io/library/redis:8-alpine`): キューストア。キューモード未有効のため現在未使用。将来のキュー モードには PostgreSQL も必要（n8n は SQLite でキュー モード未サポート）。
 
 ### 主なファイル
 
