@@ -49,16 +49,16 @@ def test_env_sample_has_redis_settings():
 def test_env_sample_has_security_settings():
     """
     セキュリティ関連の環境変数が .env_sample に定義されていることを確認します。
-    
+
     Requirements: 1.3
     - N8N_ENCRYPTION_KEY
-    - N8N_USER_MANAGEMENT_JWT_SECRET
+    - REDIS_PASSWORD
     """
     with open(".env_sample", "r") as f:
         content = f.read()
-    
+
     assert "N8N_ENCRYPTION_KEY=" in content, "N8N_ENCRYPTION_KEY が定義されていません"
-    assert "N8N_USER_MANAGEMENT_JWT_SECRET=" in content, "N8N_USER_MANAGEMENT_JWT_SECRET が定義されていません"
+    assert "REDIS_PASSWORD=" in content, "REDIS_PASSWORD が定義されていません"
 
 
 def test_env_sample_has_vnc_settings():
@@ -85,30 +85,3 @@ def test_env_sample_has_task_runner_memory_settings():
         content = f.read()
     
     assert "N8N_RUNNERS_MAX_OLD_SPACE_SIZE=" in content, "N8N_RUNNERS_MAX_OLD_SPACE_SIZE が定義されていません"
-
-
-if __name__ == "__main__":
-    tests = [
-        test_env_sample_has_runner_settings,
-        test_env_sample_has_redis_settings,
-        test_env_sample_has_security_settings,
-        test_env_sample_has_vnc_settings,
-        test_env_sample_has_task_runner_memory_settings,
-    ]
-    
-    failed = []
-    for test in tests:
-        try:
-            test()
-            print(f"✅ {test.__name__} passed")
-        except AssertionError as e:
-            print(f"❌ {test.__name__} failed: {e}")
-            failed.append((test.__name__, str(e)))
-    
-    if failed:
-        print(f"\n{len(failed)} test(s) failed:")
-        for name, error in failed:
-            print(f"  - {name}: {error}")
-        exit(1)
-    else:
-        print(f"\n✅ All {len(tests)} tests passed")

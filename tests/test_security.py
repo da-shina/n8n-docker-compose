@@ -59,23 +59,34 @@ def test_user_permissions_not_root():
     assert has_non_root, "root 以外のユーザー設定が見つかりません"
 
 
-def test_secrets_usage():
+def test_secrets_via_env_file():
     """
-    機密情報が secrets として管理されていることを確認します。
-    
+    機密情報がリポジトリ外の .env から渡されることを確認します。
+
     Requirements: 2.4
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
-    # secrets セクションの存在
-    assert "secrets:" in content, "secrets セクションが見つかりません"
-    
-    # redis_password secret の定義
-    assert "redis_password:" in content, "redis_password secret が定義されていません"
-    
-    # secrets ファイルの参照
-    assert "file: ./secrets/" in content, "secrets ファイルの参照が見つかりません"
+
+    assert "env_file:" in content and ".env" in content, \
+        ".env が env_file として読み込まれていません"
+
+    # パスワードをコミットされたファイルから読まない
+    assert "file: ./secrets/" not in content, \
+        "secrets ファイルは使わず .env に統一してください"
+
+
+def test_mcp_not_public():
+    """
+    Playwright MCP がホストの外に公開されていないことを確認します。
+
+    Requirements: 2.4
+    """
+    with open("docker-compose.yml", "r") as f:
+        content = f.read()
+
+    assert '"127.0.0.1:8931:8931"' in content, \
+        "MCP は 127.0.0.1:8931 にだけ公開してください"
 
 
 def test_network_isolation():
@@ -97,42 +108,12 @@ def test_network_isolation():
 
 def test_health_check_ready():
     """
-    ヘルスチェックが設定されている、または検討されていることを確認します。
-    
+    ヘルスチェックが設定されていることを確認します。
+
     Requirements: 2.4
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
-    # healthcheck があれば OK（必須ではないが推奨）
-    # 少なくとも depends_on で service_started による依存関係が設定されている
-    assert "depends_on:" in content or "healthcheck:" in content, \
-        "depends_on または healthcheck の設定が見つかりません"
 
-
-if __name__ == "__main__":
-    tests = [
-        test_restart_policy,
-        test_memory_limit_settings,
-        test_user_permissions_not_root,
-        test_secrets_usage,
-        test_network_isolation,
-        test_health_check_ready,
-    ]
-    
-    failed = []
-    for test in tests:
-        try:
-            test()
-            print(f"✅ {test.__name__} passed")
-        except AssertionError as e:
-            print(f"❌ {test.__name__} failed: {e}")
-            failed.append((test.__name__, str(e)))
-    
-    if failed:
-        print(f"\n{len(failed)} test(s) failed:")
-        for name, error in failed:
-            print(f"  - {name}: {error}")
-        exit(1)
-    else:
-        print(f"\n✅ All {len(tests)} tests passed")
+    assert "healthcheck:" in content, \
+        "healthcheck の設定が見つかりません"

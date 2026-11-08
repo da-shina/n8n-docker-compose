@@ -1,7 +1,8 @@
 """
-Task 4.1: n8n-taskrunner サービスの設定のテスト
+Task 4.1: タスクランナーとブラウザサービスの設定のテスト
 
-n8n-taskrunner サービスが正しく設定されていることを検証します。
+Code ノードは公式の n8n-runners サイドカーで実行し、
+n8n-task-runner は Playwright ブラウザと VNC だけを担当します。
 
 Requirements: 1.1, 2.2, 2.4
 """
@@ -9,100 +10,93 @@ Requirements: 1.1, 2.2, 2.4
 
 def test_taskrunner_service_build_config():
     """
-    n8n-taskrunner サービスが Dockerfile.taskrunner からビルドされることを確認します。
-    
+    n8n-task-runner が Dockerfile.taskrunner からビルドされることを確認します。
+
     Requirements: 1.1
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
-    # n8n-task-runner または n8n-taskrunner サービスの存在
-    assert "n8n-task-runner:" in content or "n8n-taskrunner:" in content, \
-        "n8n-taskrunner サービスが定義されていません"
-    
-    # Dockerfile.taskrunner の参照
+
+    assert "n8n-task-runner:" in content, \
+        "n8n-task-runner サービスが定義されていません"
     assert "Dockerfile.taskrunner" in content, \
         "Dockerfile.taskrunner の参照が見つかりません"
 
 
-def test_taskrunner_runner_mode():
+def test_runners_service_uses_official_image():
     """
-    n8n-taskrunner サービスが外部タスクランナーモードに設定されていることを確認します。
-    
+    公式の n8nio/runners イメージを使うサイドカーがあることを確認します。
+
     Requirements: 2.2
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
-    assert "N8N_RUNNERS_MODE=external" in content, \
-        "N8N_RUNNERS_MODE=external が設定されていません"
+
+    assert "n8n-runners:" in content, "n8n-runners サービスが定義されていません"
+    assert "n8nio/runners:" in content, "n8nio/runners イメージが使われていません"
 
 
-def test_taskrunner_auth_token():
+def test_runners_service_auth_token():
     """
-    n8n-taskrunner サービスの認証トークンが設定されていることを確認します。
-    
+    n8n-runners が n8n と同じ認証トークンを受け取ることを確認します。
+
     Requirements: 2.2
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
-    assert "N8N_RUNNERS_AUTH_TOKEN=" in content, \
-        "N8N_RUNNERS_AUTH_TOKEN が設定されていません"
+
+    assert "N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN" in content, \
+        "N8N_RUNNERS_AUTH_TOKEN が環境変数から設定されていません"
 
 
-def test_taskrunner_redis_settings():
+def test_runners_service_broker_uri():
     """
-    n8n-taskrunner サービスの Redis 接続設定が正しく構成されていることを確認します。
-    
+    n8n-runners が n8n のタスクブローカーを指していることを確認します。
+
     Requirements: 2.2
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
-    assert "QUEUE_BULL_REDIS_HOST=redis" in content, \
-        "QUEUE_BULL_REDIS_HOST=redis が設定されていません"
-    assert "QUEUE_BULL_REDIS_PORT=6379" in content, \
-        "QUEUE_BULL_REDIS_PORT=6379 が設定されていません"
+
+    assert "N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679" in content, \
+        "N8N_RUNNERS_TASK_BROKER_URI が n8n:5679 を指していません"
 
 
-def test_taskrunner_volumes():
+def test_browser_service_mounts_profile_volume():
     """
-    n8n-taskrunner サービスに適切なボリュームがマウントされていることを確認します。
-    
-    Requirements: 1.1
+    ブラウザプロファイルが playwright_data に保存されることを確認します。
+
+    Requirements: 1.4
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
-    # n8n_data のマウント
-    assert "n8n_data:" in content, "n8n_data ボリュームのマウントが見つかりません"
-    # playwright_data のマウント
-    assert "playwright_data:" in content, "playwright_data ボリュームのマウントが見つかりません"
+
+    assert "playwright_data:/home/pwuser/user-data" in content, \
+        "playwright_data がブラウザのプロファイルディレクトリにマウントされていません"
 
 
 def test_taskrunner_user_permissions():
     """
-    n8n-taskrunner サービスのユーザー権限が 1000:1000 に設定されていることを確認します。
-    
+    n8n-task-runner のユーザー権限が 1000:1000 に設定されていることを確認します。
+
     Requirements: 1.1
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
+
     assert 'user: "1000:1000"' in content, \
         "ユーザー ID 1000:1000 の設定が見つかりません"
 
 
 def test_taskrunner_restart_policy():
     """
-    n8n-taskrunner サービスの再起動ポリシーが設定されていることを確認します。
-    
+    再起動ポリシーが設定されていることを確認します。
+
     Requirements: 2.4
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
-    
+
     assert "restart: unless-stopped" in content, \
         "restart: unless-stopped ポリシーが見つかりません"
 
@@ -110,43 +104,13 @@ def test_taskrunner_restart_policy():
 def test_taskrunner_memory_settings():
     """
     タスクランナーのメモリ設定が .env_sample に定義されていることを確認します。
-    
+
     Requirements: 2.4
     """
     with open(".env_sample", "r") as f:
         content = f.read()
-    
+
     assert "N8N_RUNNERS_MAX_OLD_SPACE_SIZE=" in content, \
         "N8N_RUNNERS_MAX_OLD_SPACE_SIZE が定義されていません"
     assert "NODE_OPTIONS=" in content and "max-old-space-size" in content, \
         "NODE_OPTIONS の max-old-space-size 設定が見つかりません"
-
-
-if __name__ == "__main__":
-    tests = [
-        test_taskrunner_service_build_config,
-        test_taskrunner_runner_mode,
-        test_taskrunner_auth_token,
-        test_taskrunner_redis_settings,
-        test_taskrunner_volumes,
-        test_taskrunner_user_permissions,
-        test_taskrunner_restart_policy,
-        test_taskrunner_memory_settings,
-    ]
-    
-    failed = []
-    for test in tests:
-        try:
-            test()
-            print(f"✅ {test.__name__} passed")
-        except AssertionError as e:
-            print(f"❌ {test.__name__} failed: {e}")
-            failed.append((test.__name__, str(e)))
-    
-    if failed:
-        print(f"\n{len(failed)} test(s) failed:")
-        for name, error in failed:
-            print(f"  - {name}: {error}")
-        exit(1)
-    else:
-        print(f"\n✅ All {len(tests)} tests passed")

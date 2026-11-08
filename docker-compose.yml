@@ -1,6 +1,8 @@
 services:
   n8n:
-    image: docker.n8n.io/n8nio/n8n:latest
+    # docker.n8n.io は Docker Hub のプロキシのため匿名レート制限にかかる。
+    # docker.io を直接指定し、podman login docker.io の認証情報を使う。
+    image: docker.io/n8nio/n8n:${N8N_VERSION:-latest}
     restart: unless-stopped
     ports:
       - "5678:5678"
@@ -8,113 +10,114 @@ services:
       - .env
     environment:
       - N8N_USER_FOLDER=/home/node/.n8n
+      # 外部タスクランナー (n8n-runners) に Code ノードを実行させる
       - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
+      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN:?set N8N_RUNNERS_AUTH_TOKEN in .env}
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
       - N8N_RUNNERS_BROKER_PORT=5679
-      # Redis TLS 設定 - 無効化 (Redisサーバーが非TLSモードで実行されているため)
+      - N8N_NATIVE_PYTHON_RUNNER=true
+      # Redis 接続設定 (キューモードを有効にした場合に使用)
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
       - N8N_REDIS_TLS_ENABLED=false
       - N8N_REDIS_TLS_REJECT_UNAUTHORIZED=false
-      # Redis 接続安定性のための追加設定
       - QUEUE_BULL_REDIS_CONNECT_TIMEOUT=50000
       - QUEUE_BULL_REDIS_RETRY_DELAY=5000
       - QUEUE_BULL_REDIS_MAX_ATTEMPTS=10
       - QUEUE_BULL_REDIS_DB=0
-      # Pythonタスクランナーのエラーを回避するための設定
-      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       # ユーザー管理設定
-      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_ENCRYPTION_KEY}
+      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
       - N8N_USER_MANAGEMENT_DISABLED=false
     volumes:
       - n8n_data:/home/node/.n8n
-      - playwright_data:/home/node/user-data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - default
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     user: "1000:1000"
-    secrets:
-      - redis_password
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "require('http').get('http://127.0.0.1:5678/healthz',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
+  # 外部タスクランナー本体。Code ノードの JS / Python を n8n 本体から隔離して実行する。
+  n8n-runners:
+    image: docker.io/n8nio/runners:${N8N_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN:?set N8N_RUNNERS_AUTH_TOKEN in .env}
+      - N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679
+      - N8N_RUNNERS_MAX_OLD_SPACE_SIZE=3072
+      - NODE_OPTIONS=--max-old-space-size=3072
+    networks:
+      - default
+    depends_on:
+      n8n:
+        condition: service_started
+
+  # Playwright ブラウザと VNC。n8n からは http://n8n-task-runner:8931/mcp で接続する。
   n8n-task-runner:
     build:
       context: .
       dockerfile: Dockerfile.taskrunner
     restart: unless-stopped
     ports:
-      - "8931:8931"
-      - "5901:5900"
-    env_file:
-      - .env
-    user: "1000:1000"
-    volumes:
-      - n8n_data:/home/node/.n8n
-      - playwright_data:/home/node/user-data
-      - ./start.sh:/app/start.sh:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - default
-    environment:
-      - N8N_RUNNERS_MODE=external
-      - N8N_INSTANCE_TYPE=runner
-      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
-      - N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679
-      - VNC_PASSWORD=n8npassword
-    secrets:
-      - redis_password
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    # redis.conf を使用して設定を読み込む (パスワードなし)
-    command: redis-server /usr/local/etc/redis/redis.conf
-    user: "0:0"
-    volumes:
-      - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
-    networks:
-      - default
-    environment:
-      - REDIS_DB=0
-      - REDIS_MAXMEMORY=256mb
-      - REDIS_MAXMEMORY_POLICY=allkeys-lru
-      - REDIS_NOTIFY_KEYSPACE_EVENTS=Ex
-
-  vnc:
-    build:
-      context: .
-      dockerfile: Dockerfile.vnc
-    restart: unless-stopped
-    ports:
+      # MCP には認証がないため、ホストの外には公開しない
+      - "127.0.0.1:8931:8931"
+      # VNC はパスワード必須。LAN に公開する場合は VNC_PASSWORD を必ず変更する
       - "5900:5900"
     user: "1000:1000"
     volumes:
       - playwright_data:/home/pwuser/user-data
       - ./start.sh:/app/start.sh:ro
     environment:
-      - VNC_PASSWORD=n8npassword
+      - VNC_PASSWORD=${VNC_PASSWORD:?set VNC_PASSWORD in .env}
+    networks:
+      default:
+        aliases:
+          # 既存ワークフローが http://playwright:8931/mcp を使っているため
+          - playwright
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8931'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    restart: unless-stopped
+    # パスワードは .env の REDIS_PASSWORD から渡す
+    command: sh -c 'exec redis-server /usr/local/etc/redis/redis.conf --requirepass "$$REDIS_PASSWORD"'
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - default
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
 volumes:
   n8n_data:
     name: n8n-docker-compose_n8n_data
-    external: true
   playwright_data:
     name: n8n-docker-compose_playwright_data
-    external: true
   redis_data:
     name: n8n-docker-compose_redis_data
-    external: true
-
-secrets:
-  redis_password:
-    file: ./secrets/redis_password
 
 networks:
   default:

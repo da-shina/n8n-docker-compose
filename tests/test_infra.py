@@ -1,6 +1,5 @@
 import os
-import subprocess
-import time
+
 
 def test_docker_compose_structure():
     """Check if docker-compose.yml has the strictly required services."""
@@ -73,29 +72,3 @@ def test_volume_mounts():
     
     # playwright_data のマウント
     assert "playwright_data:" in content, "playwright_data ボリュームのマウント設定が見つかりません"
-
-
-if __name__ == "__main__":
-    try:
-        test_docker_compose_structure()
-        print("✅ Docker Compose structure test passed")
-
-        # This will fail initially because I haven't created .env or updated it
-        test_env_file_exists()
-        print("✅ .env file exists")
-
-        test_env_variables()
-        print("✅ Environment variables test passed")
-        
-        test_persistent_volumes_defined()
-        print("✅ Persistent volumes test passed")
-        
-        test_volume_user_permissions()
-        print("✅ Volume user permissions test passed")
-        
-        test_volume_mounts()
-        print("✅ Volume mounts test passed")
-
-    except AssertionError as e:
-        print(f"❌ Test failed: {e}")
-        exit(1)

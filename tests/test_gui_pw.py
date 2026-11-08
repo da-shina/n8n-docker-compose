@@ -120,32 +120,3 @@ def test_xvfb_screen_config():
     # Xvfb のスクリーン設定（解像度など）
     assert "-screen" in content or "1280x720" in content, \
         "Xvfb のスクリーン設定が見つかりません"
-
-
-if __name__ == "__main__":
-    tests = [
-        test_playwright_base_image,
-        test_playwright_browser_dependencies,
-        test_vnc_port_exposed,
-        test_vnc_password_protection,
-        test_vnc_password_env_defined,
-        test_display_environment,
-        test_xvfb_screen_config,
-    ]
-    
-    failed = []
-    for test in tests:
-        try:
-            test()
-            print(f"✅ {test.__name__} passed")
-        except AssertionError as e:
-            print(f"❌ {test.__name__} failed: {e}")
-            failed.append((test.__name__, str(e)))
-    
-    if failed:
-        print(f"\n{len(failed)} test(s) failed:")
-        for name, error in failed:
-            print(f"  - {name}: {error}")
-        exit(1)
-    else:
-        print(f"\n✅ All {len(tests)} tests passed")
