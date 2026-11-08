@@ -68,7 +68,7 @@ def test_redis_connection():
     
     Requirements: 2.2
     """
-    # Find the actual container name for n8n
+    # n8n コンテナの実際の名前を取得する
     stdout, _, _ = run_command("docker compose ps --format '{{.Names}}' 2>/dev/null | grep -i n8n | head -1 || podman compose ps --format '{{.Names}}' 2>/dev/null | grep -i n8n | head -1 || echo ''")
     main_container = stdout.split('\n')[0].strip() if stdout else ""
     
@@ -78,7 +78,7 @@ def test_redis_connection():
     
     print(f"Main container: {main_container}")
     
-    # Try to ping redis by its service name in the network
+    # ネットワーク上のサービス名で redis へ ping を試みる
     _, stderr, code = run_command(f"docker exec {main_container} nc -z redis 6379 2>/dev/null || podman exec {main_container} nc -z redis 6379 2>/dev/null || echo 'skip'")
     if code != 0:
         print(f"⚠️ Redis 接続チェック: {stderr}")
@@ -140,7 +140,7 @@ def test_task_broker_uri():
     with open("docker-compose.yml", "r") as f:
         content = f.read()
 
-    assert "N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679" in content, \
+    assert "N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679" in content, \
         "Task Broker URI が設定されていません"
 
     print("✅ Task Broker URI が設定されています")

@@ -75,10 +75,10 @@ def test_n8n_main_task_broker_uri():
     """
     Task Runner 接続用 URI が docker-compose.yml に定義されていることを確認します。
 
-    - N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679
+    - N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679
     """
     with open("docker-compose.yml", "r") as f:
         content = f.read()
 
-    assert "N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679" in content, \
+    assert "N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679" in content, \
         "N8N_RUNNERS_TASK_BROKER_URI が定義されていません"

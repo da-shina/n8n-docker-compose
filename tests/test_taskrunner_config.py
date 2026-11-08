@@ -58,7 +58,7 @@ def test_runners_service_broker_uri():
     with open("docker-compose.yml", "r") as f:
         content = f.read()
 
-    assert "N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679" in content, \
+    assert "N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679" in content, \
         "N8N_RUNNERS_TASK_BROKER_URI が n8n:5679 を指していません"
 
 

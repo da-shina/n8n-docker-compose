@@ -55,7 +55,7 @@ services:
     restart: unless-stopped
     environment:
       - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN:?set N8N_RUNNERS_AUTH_TOKEN in .env}
-      - N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679
+      - N8N_RUNNERS_TASK_BROKER_URI=ws://n8n:5679
       - N8N_RUNNERS_MAX_OLD_SPACE_SIZE=3072
       - NODE_OPTIONS=--max-old-space-size=3072
     networks:
